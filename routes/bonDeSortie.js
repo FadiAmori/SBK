@@ -46,14 +46,9 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Update stock for each product
-    for (const item of produits) {
-      const produit = await Produit.findById(item.produit);
-      produit.stockAvantMouvement = produit.stockActuel;
-      produit.stockActuel -= item.quantite;
-      produit.stockApresMouvement = produit.stockActuel;
-      await produit.save();
-    }
+    // NOTE: bon de sortie should NOT decrement stock here according to requested behaviour.
+    // The stock will be decremented only when a vente (facture) is created.
+    // We still keep stockAvantSortie/stockApresSortie for audit but we don't change Produit.stockActuel.
 
     // Calculate stock totals
     const stockAvantSortie = produits.reduce((sum, item) => sum + item.quantite, 0);
@@ -156,29 +151,11 @@ router.put('/:id', async (req, res) => {
         return res.status(404).json({ error: 'Bon de sortie not found' });
       }
 
-      // Revert previous stock changes
-      for (const item of existingBon.produits) {
-        const produit = await Produit.findById(item.produit._id);
-        if (produit) {
-          produit.stockActuel += item.quantite;
-          produit.stockAvantMouvement = produit.stockActuel;
-          produit.stockApresMouvement = produit.stockActuel;
-          await produit.save();
-        }
-      }
+      // We do NOT change the product stock for bon de sortie updates per requested behaviour.
 
-      // Apply new stock changes
-      for (const item of produits) {
-        const produit = await Produit.findById(item.produit);
-        produit.stockAvantMouvement = produit.stockActuel;
-        produit.stockActuel -= item.quantite;
-        produit.stockApresMouvement = produit.stockActuel;
-        await produit.save();
-      }
-
-      // Recalculate stock totals
-      const stockAvantSortie = produits.reduce((sum, item) => sum + item.quantite, 0);
-      const stockApresSortie = 0;
+  // Recalculate stock totals for record (not actual stock change)
+  const stockAvantSortie = produits.reduce((sum, item) => sum + item.quantite, 0);
+  const stockApresSortie = 0;
       updateData.stockAvantSortie = stockAvantSortie;
       updateData.stockApresSortie = stockApresSortie;
     }
@@ -199,16 +176,7 @@ router.delete('/:id', async (req, res) => {
     const bonDeSortie = await BonDeSortie.findById(req.params.id).populate('produits.produit');
     if (!bonDeSortie) return res.status(404).json({ error: 'Bon de sortie not found' });
 
-    // Revert stock changes
-    for (const item of bonDeSortie.produits) {
-      const produit = await Produit.findById(item.produit._id);
-      if (produit) {
-        produit.stockActuel += item.quantite;
-        produit.stockAvantMouvement = produit.stockActuel;
-        produit.stockApresMouvement = produit.stockActuel;
-        await produit.save();
-      }
-    }
+    // No stock revert necessary because we didn't modify product stock when creating bons de sortie.
 
     await BonDeSortie.findByIdAndDelete(req.params.id);
     res.json({ message: 'Bon de sortie deleted' });

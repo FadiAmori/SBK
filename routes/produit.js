@@ -28,7 +28,7 @@ const generateReferenceProduit = async (retryCount = 0, maxRetries = 5) => {
 router.post('/', async (req, res) => {
   console.log("Received data:", req.body); // Debug log
   try {
-    const { referenceProduit, prixAchat, prixUnitaireHT, margeDegagnante, nomProduit, ...produitData } = req.body;
+    const { referenceProduit, prixAchat, prixUnitaireHT, prixUnitaireTTC, margeDegagnante, nomProduit, tvaApplicable, ...produitData } = req.body;
 
     if (!nomProduit) {
       return res.status(400).json({ error: 'Le nom du produit est requis.' });
@@ -36,15 +36,19 @@ router.post('/', async (req, res) => {
     if (!prixAchat || prixAchat <= 0) {
       return res.status(400).json({ error: 'Le prix d\'achat doit être supérieur à 0.' });
     }
-    if (!prixUnitaireHT || prixUnitaireHT <= 0) {
-      return res.status(400).json({ error: 'Le prix unitaire HT doit être supérieur à 0.' });
+    // If TTC provided, compute HT using tvaApplicable; otherwise require prixUnitaireHT
+    let finalPrixUnitaireHT = prixUnitaireHT;
+    if ((!finalPrixUnitaireHT || finalPrixUnitaireHT <= 0) && prixUnitaireTTC && tvaApplicable !== undefined) {
+      const tva = parseFloat(tvaApplicable) || 0;
+      finalPrixUnitaireHT = Number(prixUnitaireTTC) / (1 + tva / 100);
+    }
+    if (!finalPrixUnitaireHT || finalPrixUnitaireHT <= 0) {
+      return res.status(400).json({ error: 'Le prix unitaire HT doit être supérieur à 0 (ou fournir prixUnitaireTTC + tvaApplicable).' });
     }
     if (margeDegagnante === undefined || margeDegagnante < 0) {
       return res.status(400).json({ error: 'La marge dégagnante ne peut pas être négative.' });
     }
-    if (prixUnitaireHT < prixAchat) {
-      return res.status(400).json({ error: 'Le prix unitaire HT doit être supérieur ou égal au prix d\'achat.' });
-    }
+
 
     const newReference = await generateReferenceProduit();
     const produit = new Produit({
@@ -52,7 +56,9 @@ router.post('/', async (req, res) => {
       nomProduit,
       referenceProduit: newReference,
       prixAchat,
-      prixUnitaireHT,
+      prixUnitaireHT: finalPrixUnitaireHT,
+      prixUnitaireTTC: prixUnitaireTTC || null,
+      tvaApplicable: tvaApplicable || 0,
       margeDegagnante,
     });
     await produit.save();
@@ -79,7 +85,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   console.log("Received data for update:", req.body); // Debug log
   try {
-    const { referenceProduit, prixAchat, prixUnitaireHT, margeDegagnante, nomProduit, ...updateData } = req.body;
+    const { referenceProduit, prixAchat, prixUnitaireHT, prixUnitaireTTC, margeDegagnante, nomProduit, tvaApplicable, ...updateData } = req.body;
 
     if (!nomProduit) {
       return res.status(400).json({ error: 'Le nom du produit est requis.' });
@@ -87,19 +93,22 @@ router.put('/:id', async (req, res) => {
     if (!prixAchat || prixAchat <= 0) {
       return res.status(400).json({ error: 'Le prix d\'achat doit être supérieur à 0.' });
     }
-    if (!prixUnitaireHT || prixUnitaireHT <= 0) {
-      return res.status(400).json({ error: 'Le prix unitaire HT doit être supérieur à 0.' });
+    let finalPrixUnitaireHT = prixUnitaireHT;
+    if ((!finalPrixUnitaireHT || finalPrixUnitaireHT <= 0) && prixUnitaireTTC && tvaApplicable !== undefined) {
+      const tva = parseFloat(tvaApplicable) || 0;
+      finalPrixUnitaireHT = Number(prixUnitaireTTC) / (1 + tva / 100);
+    }
+    if (!finalPrixUnitaireHT || finalPrixUnitaireHT <= 0) {
+      return res.status(400).json({ error: 'Le prix unitaire HT doit être supérieur à 0 (ou fournir prixUnitaireTTC + tvaApplicable).' });
     }
     if (margeDegagnante === undefined || margeDegagnante < 0) {
       return res.status(400).json({ error: 'La marge dégagnante ne peut pas être négative.' });
     }
-    if (prixUnitaireHT < prixAchat) {
-      return res.status(400).json({ error: 'Le prix unitaire HT doit être supérieur ou égal au prix d\'achat.' });
-    }
+
 
     const produit = await Produit.findByIdAndUpdate(
       req.params.id,
-      { ...updateData, nomProduit, prixAchat, prixUnitaireHT, margeDegagnante },
+      { ...updateData, nomProduit, prixAchat, prixUnitaireHT: finalPrixUnitaireHT, prixUnitaireTTC: prixUnitaireTTC || null, tvaApplicable: tvaApplicable || 0, margeDegagnante },
       { new: true, runValidators: true }
     );
     if (!produit) return res.status(404).json({ error: 'Produit non trouvé.' });

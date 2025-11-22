@@ -6,7 +6,9 @@ const produitSchema = new mongoose.Schema({
   categorie: { type: String },
   description: { type: String },
   prixAchat: { type: Number, required: true, min: [0.01, 'Le prix d\'achat doit être supérieur à 0.'] },
+  // price fields: allow entering price TTC and compute HT automatically when provided
   prixUnitaireHT: { type: Number, required: true, min: [0.01, 'Le prix unitaire HT doit être supérieur à 0.'] },
+  prixUnitaireTTC: { type: Number },
   margeDegagnante: { type: Number, min: [0, 'La marge dégagnante ne peut pas être négative.'] },
   tvaApplicable: { type: Number },
   stockActuel: { type: Number, default: 0, min: 0 },
