@@ -6,6 +6,10 @@ const clientSchema = new mongoose.Schema({
   adresse: { type: String, required: true },
   telephone: { type: String },
   email: { type: String },
+  // Matricule fiscale du client
+  matriculeFiscale: { type: String },
+  // Crédit du client (somme des montants restants à payer)
+  credit: { type: Number, default: 0 },
   dateInscription: { type: Date, default: Date.now },
   typeClient: { type: String, enum: ['Particulier', 'Entreprise', 'Distributeur'] },
   conditionsPaiement: { type: String },

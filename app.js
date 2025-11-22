@@ -15,7 +15,7 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || '*', // Use environment variable for frontend URL
+  origin: 'https://sbk-frontend-bh3d.vercel.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Cache-Control'],
   maxAge: 86400,

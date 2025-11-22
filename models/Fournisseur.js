@@ -8,6 +8,8 @@ const fournisseurSchema = new mongoose.Schema({
   email: { type: String },
   dateInscription: { type: Date, default: Date.now },
   nomContact: { type: String },
+  // Matricule fiscale du fournisseur
+  matriculeFiscale: { type: String },
   typeFournisseur: { type: String, enum: ['Produits', 'Matières premières', 'Services'] },
   delaiPaiement: { type: String },
   modePaiement: { type: String, enum: ['Chèque', 'Virement', 'Espèces'] },

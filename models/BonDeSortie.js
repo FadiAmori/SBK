@@ -7,7 +7,7 @@ const bonDeSortieSchema = new mongoose.Schema({
     produit: { type: mongoose.Schema.Types.ObjectId, ref: 'Produit' },
     quantite: { type: Number, required: true, min: 1 }
   }],
-  motifSortie: { type: String, enum: ['Vente', 'Don', 'Transfert', 'Usage interne'] },
+  motifSortie: { type: String, enum: ['Vente', 'Don', 'Livraison', 'Usage interne'] },
   destination: { type: String },
   matriculeVehicule: { type: String },
   nomChauffeur: { type: String },
